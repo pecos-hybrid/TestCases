@@ -1,0 +1,23 @@
+This directory contains meshes for a RANS, fully-developed channel
+flow test case.  The meshes were generated as follows:
+
+1) Run the channel_mesh.glf script in Pointwise.  By default, this
+will generate a 33x129 point mesh and save it as channel_mesh.su2.  To
+modify the number of points or the file name, adjust Nx, Ny and/or
+su2File in channel_mesh.glf.
+
+2) Generate periodic structures necessary for SU2.  In theory, the
+utility SU2_MSH should do this, but it (at least the version on
+pecos-dev as of 2/23/2018) produced invalid output (causing SU2_CFD to
+crash when attempting to write a restart file).  Instead, the utility
+SU2_PER should be used.  This utility is available at the
+su2code/MeshTools github page (e.g., git clone
+https://github.com/su2code/MeshTools.git).
+
+SU2_PER accepts the same input as SU2_MSH (i.e., a SU2 configuration
+file), but has a dislike for long filenames.  So you may need to
+temporarily rename files to avoid errors due to SU2_PER only reading
+part of the filename.
+
+Finally, as with other SU2 test cases, the SU2 configuration file is
+stored with the code.  See SU2/TestCases/rans/channel for examples.

@@ -69,8 +69,8 @@ pw::Application markUndoLevel {Create 2 Point Connector}
 
 set _TMP(mode_4) [pw::Application begin Create]
   set _TMP(PW_4) [pw::SegmentSpline create]
-  $_TMP(PW_4) addPoint $p3
   $_TMP(PW_4) addPoint $p0
+  $_TMP(PW_4) addPoint $p3
   unset _TMP(con_3)
   set _TMP(con_4) [pw::Connector create]
   $_TMP(con_4) addSegment $_TMP(PW_4)
@@ -130,16 +130,27 @@ pw::Application markUndoLevel {Create BC}
 
 set _TMP(PW_11) [pw::BoundaryCondition getByName {bc-2}]
 unset _TMP(PW_10)
-$_TMP(PW_11) apply [list [list $_DM(1) $_CN(1)] [list $_DM(1) $_CN(2)]]
+$_TMP(PW_11) apply [list [list $_DM(1) $_CN(1)] ]
 pw::Application markUndoLevel {Set BC}
 
-$_TMP(PW_11) setName "Wall"
+$_TMP(PW_11) setName "Top"
+pw::Application markUndoLevel {Name BC}
+
+set _TMP(PW_10) [pw::BoundaryCondition create]
+pw::Application markUndoLevel {Create BC}
+
+set _TMP(PW_11) [pw::BoundaryCondition getByName {bc-3}]
+unset _TMP(PW_10)
+$_TMP(PW_11) apply [list [list $_DM(1) $_CN(2)]]
+pw::Application markUndoLevel {Set BC}
+
+$_TMP(PW_11) setName "Bottom"
 pw::Application markUndoLevel {Name BC}
 
 set _TMP(PW_12) [pw::BoundaryCondition create]
 pw::Application markUndoLevel {Create BC}
 
-set _TMP(PW_13) [pw::BoundaryCondition getByName {bc-3}]
+set _TMP(PW_13) [pw::BoundaryCondition getByName {bc-4}]
 unset _TMP(PW_12)
 $_TMP(PW_13) apply [list [list $_DM(1) $_CN(3)]]
 pw::Application markUndoLevel {Set BC}
@@ -150,7 +161,7 @@ pw::Application markUndoLevel {Name BC}
 set _TMP(PW_14) [pw::BoundaryCondition create]
 pw::Application markUndoLevel {Create BC}
 
-set _TMP(PW_15) [pw::BoundaryCondition getByName {bc-4}]
+set _TMP(PW_15) [pw::BoundaryCondition getByName {bc-5}]
 unset _TMP(PW_14)
 $_TMP(PW_15) apply [list [list $_DM(1) $_CN(4)]]
 pw::Application markUndoLevel {Set BC}
@@ -158,18 +169,7 @@ pw::Application markUndoLevel {Set BC}
 $_TMP(PW_15) setName "Outlet"
 pw::Application markUndoLevel {Name BC}
 
-unset _TMP(PW_9)
-unset _TMP(PW_11)
-unset _TMP(PW_13)
-unset _TMP(PW_15)
-set _TMP(PW_16) [pw::BoundaryCondition getByName {Unspecified}]
-unset _TMP(PW_16)
-set _TMP(PW_17) [pw::BoundaryCondition getByName {Wall}]
-unset _TMP(PW_17)
-set _TMP(PW_18) [pw::BoundaryCondition getByName {Inlet}]
-unset _TMP(PW_18)
-set _TMP(PW_19) [pw::BoundaryCondition getByName {Outlet}]
-unset _TMP(PW_19)
+
 set _TMP(mode_9) [pw::Application begin CaeExport [pw::Entity sort [list $_DM(1)]]]
   $_TMP(mode_9) initialize -strict -type CAE $su2File
   $_TMP(mode_9) setAttribute FilePrecision Double

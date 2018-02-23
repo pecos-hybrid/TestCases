@@ -171,7 +171,7 @@ unset _TMP(PW_18)
 set _TMP(PW_19) [pw::BoundaryCondition getByName {Outlet}]
 unset _TMP(PW_19)
 set _TMP(mode_9) [pw::Application begin CaeExport [pw::Entity sort [list $_DM(1)]]]
-  $_TMP(mode_9) initialize -strict -type CAE {$su2File}
+  $_TMP(mode_9) initialize -strict -type CAE $su2File
   $_TMP(mode_9) setAttribute FilePrecision Double
   $_TMP(mode_9) verify
   $_TMP(mode_9) write

@@ -35,10 +35,11 @@ set ynum 150
 set znum 40
 
 # if 2d or 3d
-set xnum 20
-set znum 1
+#set xnum 20
+#set znum 1
 
-
+# where to save
+set su2File "./channel_mesh.su2"
 
 # mesh sizes
 set yini 2.0e-4
@@ -254,8 +255,20 @@ pw::Application markUndoLevel {Extrude, Translate}
 
 pw::Display setShowDomains 0
 pw::Display setProjection Perspective
-pw::Application setCAESolver {ANSYS Fluent} 3
+#pw::Application setCAESolver {ANSYS Fluent} 3
+pw::Application setCAESolver {Stanford ADL/SU2} 3
 pw::Application markUndoLevel {Select Solver}
+
+
+#set _TMP(mode_9) [pw::Application begin CaeExport [pw::Entity sort [list $_DM(1)]]]
+#  $_TMP(mode_9) initialize -strict -type CAE $su2File
+#  $_TMP(mode_9) setAttribute FilePrecision Double
+#  $_TMP(mode_9) verify
+#  $_TMP(mode_9) write
+#$_TMP(mode_9) end
+#unset _TMP(mode_9)
+
+# Appended by Pointwise V18.0R4 - Fri Feb 23 20:14:05 2018
 
 set _DM(1) [pw::GridEntity getByName "dom-1"]
 set _BL(1) [pw::GridEntity getByName "blk-1"]
@@ -264,84 +277,113 @@ set _DM(3) [pw::GridEntity getByName "dom-3"]
 set _DM(4) [pw::GridEntity getByName "dom-4"]
 set _DM(5) [pw::GridEntity getByName "dom-5"]
 set _DM(6) [pw::GridEntity getByName "dom-6"]
-set _TMP(PW_1) [pw::BoundaryCondition getByName "Unspecified"]
-set _TMP(PW_2) [pw::BoundaryCondition create]
+set _TMP(PW_6) [pw::BoundaryCondition getByName {Unspecified}]
+set _TMP(PW_7) [pw::BoundaryCondition create]
 pw::Application markUndoLevel {Create BC}
 
-set _TMP(PW_3) [pw::BoundaryCondition getByName "bc-2"]
-unset _TMP(PW_2)
-set _TMP(PW_4) [pw::BoundaryCondition create]
-pw::Application markUndoLevel {Create BC}
-
-set _TMP(PW_5) [pw::BoundaryCondition getByName "bc-3"]
-unset _TMP(PW_4)
-set _TMP(PW_6) [pw::BoundaryCondition create]
-pw::Application markUndoLevel {Create BC}
-
-set _TMP(PW_7) [pw::BoundaryCondition getByName "bc-4"]
-unset _TMP(PW_6)
-set _TMP(PW_8) [pw::BoundaryCondition create]
-pw::Application markUndoLevel {Create BC}
-
-set _TMP(PW_9) [pw::BoundaryCondition getByName "bc-5"]
-unset _TMP(PW_8)
-set _TMP(PW_10) [pw::BoundaryCondition create]
-pw::Application markUndoLevel {Create BC}
-
-set _TMP(PW_11) [pw::BoundaryCondition getByName "bc-6"]
-unset _TMP(PW_10)
-$_TMP(PW_3) setPhysicalType -usage CAE {Wall}
-pw::Application markUndoLevel {Change BC Type}
-
-$_TMP(PW_3) setName "wall"
-pw::Application markUndoLevel {Name BC}
-
-$_TMP(PW_5) setPhysicalType -usage CAE {Pressure Inlet}
-pw::Application markUndoLevel {Change BC Type}
-
-$_TMP(PW_7) setPhysicalType -usage CAE {Pressure Outlet}
-pw::Application markUndoLevel {Change BC Type}
-
-$_TMP(PW_5) setName "pressure-inlet"
-pw::Application markUndoLevel {Name BC}
-
-$_TMP(PW_7) setName "pressure-outlet"
-pw::Application markUndoLevel {Name BC}
-
-$_TMP(PW_9) setPhysicalType -usage CAE {Velocity Inlet}
-pw::Application markUndoLevel {Change BC Type}
-
-$_TMP(PW_11) setPhysicalType -usage CAE {Outflow}
-pw::Application markUndoLevel {Change BC Type}
-
-$_TMP(PW_9) setName "velocity-inlet"
-pw::Application markUndoLevel {Name BC}
-
-$_TMP(PW_11) setName "outflow"
-pw::Application markUndoLevel {Name BC}
-
-$_TMP(PW_3) apply [list [list $_BL(1) $_DM(4)]]
-pw::Application markUndoLevel {Set BC}
-
-$_TMP(PW_3) apply [list [list $_BL(1) $_DM(2)]]
-pw::Application markUndoLevel {Set BC}
-
-$_TMP(PW_7) apply [list [list $_BL(1) $_DM(6)]]
-pw::Application markUndoLevel {Set BC}
-
-$_TMP(PW_5) apply [list [list $_BL(1) $_DM(1)]]
-pw::Application markUndoLevel {Set BC}
-
-$_TMP(PW_11) apply [list [list $_BL(1) $_DM(3)]]
-pw::Application markUndoLevel {Set BC}
-
-$_TMP(PW_9) apply [list [list $_BL(1) $_DM(5)]]
-pw::Application markUndoLevel {Set BC}
-
-unset _TMP(PW_1)
-unset _TMP(PW_3)
-unset _TMP(PW_5)
+set _TMP(PW_8) [pw::BoundaryCondition getByName {bc-2}]
 unset _TMP(PW_7)
+$_TMP(PW_8) apply [list [list $_BL(1) $_DM(5)]]
+pw::Application markUndoLevel {Set BC}
+
+$_TMP(PW_8) setName "left"
+pw::Application markUndoLevel {Name BC}
+
+set _TMP(PW_9) [pw::BoundaryCondition create]
+pw::Application markUndoLevel {Create BC}
+
+set _TMP(PW_10) [pw::BoundaryCondition getByName {bc-3}]
 unset _TMP(PW_9)
+$_TMP(PW_10) apply [list [list $_BL(1) $_DM(3)]]
+pw::Application markUndoLevel {Set BC}
+
+$_TMP(PW_10) setName "right"
+pw::Application markUndoLevel {Name BC}
+
+set _TMP(PW_11) [pw::BoundaryCondition create]
+pw::Application markUndoLevel {Create BC}
+
+set _TMP(PW_12) [pw::BoundaryCondition getByName {bc-4}]
 unset _TMP(PW_11)
-# fini
+$_TMP(PW_12) setName "bottom"
+pw::Application markUndoLevel {Name BC}
+
+$_TMP(PW_12) apply [list [list $_BL(1) $_DM(2)]]
+pw::Application markUndoLevel {Set BC}
+
+set _TMP(PW_13) [pw::BoundaryCondition create]
+pw::Application markUndoLevel {Create BC}
+
+set _TMP(PW_14) [pw::BoundaryCondition getByName {bc-5}]
+unset _TMP(PW_13)
+$_TMP(PW_14) setName "top"
+pw::Application markUndoLevel {Name BC}
+
+$_TMP(PW_14) apply [list [list $_BL(1) $_DM(4)]]
+pw::Application markUndoLevel {Set BC}
+
+set _TMP(PW_15) [pw::BoundaryCondition create]
+pw::Application markUndoLevel {Create BC}
+
+set _TMP(PW_16) [pw::BoundaryCondition getByName {bc-6}]
+unset _TMP(PW_15)
+$_TMP(PW_16) setName "front"
+pw::Application markUndoLevel {Name BC}
+
+$_TMP(PW_16) apply [list [list $_BL(1) $_DM(6)]]
+pw::Application markUndoLevel {Set BC}
+
+set _TMP(PW_17) [pw::BoundaryCondition create]
+pw::Application markUndoLevel {Create BC}
+
+set _TMP(PW_18) [pw::BoundaryCondition getByName {bc-7}]
+unset _TMP(PW_17)
+$_TMP(PW_18) apply [list [list $_BL(1) $_DM(1)]]
+pw::Application markUndoLevel {Set BC}
+
+$_TMP(PW_18) setName "back"
+pw::Application markUndoLevel {Name BC}
+
+unset _TMP(PW_6)
+unset _TMP(PW_8)
+unset _TMP(PW_10)
+unset _TMP(PW_12)
+unset _TMP(PW_14)
+unset _TMP(PW_16)
+unset _TMP(PW_18)
+set _TMP(PW_19) [pw::BoundaryCondition getByName {Unspecified}]
+set _TMP(PW_20) [pw::BoundaryCondition getByName {left}]
+set _TMP(PW_21) [pw::BoundaryCondition getByName {right}]
+set _TMP(PW_22) [pw::BoundaryCondition getByName {bottom}]
+set _TMP(PW_23) [pw::BoundaryCondition getByName {top}]
+set _TMP(PW_24) [pw::BoundaryCondition getByName {front}]
+set _TMP(PW_25) [pw::BoundaryCondition getByName {back}]
+pw::Display resetView -Z
+unset _TMP(PW_19)
+unset _TMP(PW_20)
+unset _TMP(PW_21)
+unset _TMP(PW_22)
+unset _TMP(PW_23)
+unset _TMP(PW_24)
+unset _TMP(PW_25)
+set _TMP(PW_26) [pw::BoundaryCondition getByName {Unspecified}]
+unset _TMP(PW_26)
+set _TMP(PW_27) [pw::BoundaryCondition getByName {left}]
+unset _TMP(PW_27)
+set _TMP(PW_28) [pw::BoundaryCondition getByName {right}]
+unset _TMP(PW_28)
+set _TMP(PW_29) [pw::BoundaryCondition getByName {bottom}]
+unset _TMP(PW_29)
+set _TMP(PW_30) [pw::BoundaryCondition getByName {top}]
+unset _TMP(PW_30)
+set _TMP(PW_31) [pw::BoundaryCondition getByName {front}]
+unset _TMP(PW_31)
+set _TMP(PW_32) [pw::BoundaryCondition getByName {back}]
+unset _TMP(PW_32)
+set _TMP(mode_1) [pw::Application begin CaeExport [pw::Entity sort [list $_BL(1)]]]
+  $_TMP(mode_1) initialize -strict -type CAE {/home/oliver/Repos/git/TestCases/hybrid/channel/channel_mesh_100x150x40.su2}
+  $_TMP(mode_1) setAttribute FilePrecision Double
+  $_TMP(mode_1) verify
+  $_TMP(mode_1) write
+$_TMP(mode_1) end
+unset _TMP(mode_1)

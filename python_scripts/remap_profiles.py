@@ -1,3 +1,20 @@
+#!/usr/bin/env python
+"""Interpolate a set of profiles onto an SU2 restart file
+
+This script is designed to allow an SU2 restart file to be filled in
+with the data from a set of profiles, defined in an external file.
+It requires an ASCII SU2 restart file as an input, in order to define
+the coordinates of each data point. The output is also an ASCII SU2
+restart file, with the flow and turbulence variables set to match the
+profile.
+
+Because this script uses a linear interpolation, the grid points in the
+profile do not have to match the grid points in the SU2 restart file.
+
+The script currently assumes that the profiles are 1D, and they are
+constant in the x and y directions.
+"""
+
 import numpy as np
 from scipy.interpolate import interp1d
 import argparse
@@ -5,6 +22,10 @@ import argparse
 
 def RemapData(old_data, profiles):
     """ Take an old array of data and interpolate new data on the same grid.
+
+    The remapping uses a 1-D linear interpolation.
+    Poor results were observed using a cubic interpolation where sharp
+    gradients exist (e.g. in the dissipation near the wall).
 
     Args:
         old_data: The data to be overwritten
@@ -16,15 +37,23 @@ def RemapData(old_data, profiles):
     """
     interp = {}
     for key in profiles.dtype.names:
-        interp[key] = interp1d(profiles['ydelta'], profiles[key],
+        interp[key] = interp1d(profiles['y'], profiles[key],
                                kind="linear")
     out = np.array(old_data)
     y = old_data['y']
-    for key in ['Density', 'XMomentum', 'YMomentum', 'Energy',
-                'TKE', 'Dissipation', 'v2', 'f']:
+    if 'TKE' in old_data.dtype.names:
+        flow_vars = ['Density', 'XMomentum', 'YMomentum', 'Energy',
+                     'TKE', 'Dissipation', 'v2', 'f']
+    elif 'Nu_Tilde' in old_data.dtype.names:
+        flow_vars = ['Density', 'XMomentum', 'YMomentum', 'Energy', 'Nu_Tilde']
+    else:
+        raise KeyError("Could not find turbulence variables in restart file!")
+    for key in flow_vars:
         out[key] = interp[key](y)
-    out['ZMomentum'] = 0.0
-    out["Alpha"] = 1.0
+    if "ZMomentum" in out.dtype.names:
+        out['ZMomentum'] = 0.0
+    if "Alpha" in out.dtype.names:
+        out["Alpha"] = 1.0
     return out
 
 
@@ -130,7 +159,7 @@ args = parser.parse_args()
 num_lines_in_footer = 9
 
 print("Reading in original data...")
-original = np.genfromtxt(args.restart, names=True, 
+original = np.genfromtxt(args.restart, names=True,
                          skip_footer=num_lines_in_footer)
 print("Reading in data to be interpolated...")
 data = np.genfromtxt(args.input, names=True, delimiter=', ')

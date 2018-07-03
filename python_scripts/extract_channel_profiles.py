@@ -1,3 +1,19 @@
+#!/usr/bin/env python
+"""Extract a set of profiles from an ASCII SU2 restart file.
+
+This script is used to read a 1-D profile for the flow and turbulence
+variables and write the data to a file.  It will average across the
+y-values. This script is explicitly designed for channel flow
+simulations.
+
+It does **not** use symmetry in averaging. Even though the results
+should be symmetric, this script will create a profile from
+wall-to-wall, rather than from wall-to-centerline.  This is intentional.
+In RANS tests, SU2 tended to produce solutions that were asymmetric in
+the Y-Momentum field.  By extracting the profiles exactly as they were,
+a simulation can be restarted in a similar way to how it ended.
+"""
+
 import numpy as np
 import argparse
 
@@ -27,8 +43,15 @@ delta_viscous = nu / u_tau
 profiles['y+'] = profiles['y']/delta_viscous
 
 # Set up arrays
-flow_vars = ['Density', 'XMomentum', 'YMomentum', 'Energy',
-             'TKE', 'Dissipation', 'v2', 'f']
+if 'TKE' in data.dtype.names:
+    flow_vars = ['Density', 'XMomentum', 'YMomentum', 'Energy',
+                 'TKE', 'Dissipation', 'v2', 'f']
+elif 'Nu_Tilde' in data.dtype.names:
+    flow_vars = ['Density', 'XMomentum', 'YMomentum', 'Energy', "Nu_Tilde"]
+else:
+    raise KeyError("Could not find turbulence variables in restart file!")
+all_vars = ["y", "y+"] + flow_vars
+
 for key in flow_vars:
     profiles[key] = np.zeros(num_points)
 
@@ -43,10 +66,7 @@ for i in range(len(profiles['y'])):
             profiles[key][i] = np.mean(data[key][mask])
 
 # Save to file
-table = np.vstack([profiles['y'], profiles['y+'],
-                   profiles['Density'], profiles['XMomentum'],
-                   profiles['YMomentum'], profiles['Energy'],
-                   profiles['TKE'], profiles['Dissipation'],
-                   profiles['v2'], profiles['f']])
-header = "y/delta, y+, Density, X-Momentum, Y-Momentum, Energy, k, diss, v2, f"
+all_profiles = [profiles[key] for key in all_vars]
+table = np.vstack(all_profiles)
+header = ", ".join(all_vars)
 np.savetxt(args.output, table.transpose(), delimiter=', ', header=header)

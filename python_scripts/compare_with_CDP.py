@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import argparse
 import tecplot as tp
 from tecplot.constant import PlotType, ReadDataOption
+from scipy.interpolate import interp1d
 
 
 def LoadData(filename, keys, labels, z_key, y_key, sort_key):
@@ -62,10 +63,18 @@ def LoadData(filename, keys, labels, z_key, y_key, sort_key):
 # ----------------------------------------------------------------
 # Fill in the following variables to change what is plotted
 # -----------------------------------------------------------------
-variables = ['u', 'k']  # Unique identifiers for each variable
-labels = ['$u$', '$k$']  # The labels to be used for the variables on the plot
-cdp_keys = ['U-X', 'TKE']  # The names CDP uses for each variable
-su2_keys = ['Conservative_2', 'Conservative_6']
+# The labels to be used for plotting
+labels = ['$\\alpha$', '$k_{res}$', '$P_k$', '$\\nu_t$']
+# cdp_keys = ['K_RATIO', 'K_RESOLVED', 'PROD', 'NU_T']
+# su2_keys = ['<greek>a</greek>', 'k<sub>res</sub>', 'Production',
+#             '<greek>m</greek><sub>t</sub>']
+cdp_keys = ['NU_SGS', 'TDR', 'FD_AVE']
+su2_keys = ["Resolution_Tensor_11",
+            "Resolution_Tensor_22", "Resolution_Tensor_33",
+            "mu<sup>SGET</sup><sub>11</sub>",
+            "mu<sup>SGET</sup><sub>22</sub>",
+            "mu<sup>SGET</sup><sub>33</sub>", 'Dissipation']
+
 # -----------------------------------------------------------------
 
 short_description = "Plot a comparison between SU2 and CDP."
@@ -77,7 +86,7 @@ parser.add_argument("--su2", help="TecPlot data file with SU2 results",
 args = parser.parse_args()
 
 print("Loading the CDP data file...")
-cdp = LoadData(args.cdp, cdp_keys, variables, "Z", "Y", "y")
+cdp = LoadData(args.cdp, cdp_keys, cdp_keys, "Z", "Y", "y")
 
 # Either load the SU2 Tecplot file exactly as specified, or find both
 # a *.mesh.plt and a *.sol.plt file matching the name specified.
@@ -85,16 +94,50 @@ print("Loading the SU2 data file...")
 if (".dat" in args.su2) or (".plt" in args.su2):
     su2_filename = args.su2
 else:
-    su2_filename = [args.su2 + ".mesh.plt", args.su2 + ".sol.plt"]
-su2 = LoadData(su2_filename, su2_keys, variables, "z", "y", "y")
+    su2_filename = [args.su2 + ".mesh.plt", args.su2 + "_00002.sol.plt"]
+su2 = LoadData(su2_filename, su2_keys, su2_keys, "z", "y", "y")
+d_norm = np.sqrt(np.power(su2["Resolution_Tensor_11"], 2) +
+                 np.power(su2["Resolution_Tensor_22"], 2) +
+                 np.power(su2["Resolution_Tensor_33"], 2))
+d_norm_43 = np.power(d_norm, 4.0/3)
+interp = interp1d(cdp["yp"], cdp["FD_AVE"])
+r_M = interp(su2["yp"])
+
+
+M_factor = {}
+nu_sgs = {}
+for comp in ["11", "22", "33"]:
+    M_43 = np.power(su2["Resolution_Tensor_" + comp], 4.0/3)
+    M_factor[comp] = np.divide(M_43, d_norm_43)
+    mu_sget_label = "mu<sup>SGET</sup><sub>" + comp + "</sub>"
+    nu_sgs[comp] = np.divide(su2[mu_sget_label], M_factor[comp])
+    factor = np.power(np.minimum(r_M, np.ones(r_M.shape)*10), 4.0/3)
+    nu_sgs[comp] = np.multiply(factor, nu_sgs[comp])
+
 
 # Plot the variables
-num_plots = len(variables)
-fig, axes = plt.subplots(num_plots, 1, sharex=True)
-for axis, variable, label in zip(axes, variables, labels):
-    axis.semilogx(cdp["yp"], cdp[variable], "--", label="CDP")
-    axis.semilogx(su2["yp"], su2[variable], ":", label="SU2")
-    axis.set_ylabel(label)
+fig, axes = plt.subplots(3, 1)
+axes[0].semilogx(cdp["yp"], cdp["NU_SGS"], "--", label="CDP")
+axes[0].set_ylabel("$\\nu_{SGS}$")
+axes[0].semilogx(su2["yp"], nu_sgs["11"], ":", label="SU2_11")
+axes[0].semilogx(su2["yp"], nu_sgs["22"], ":", label="SU2_22")
+axes[0].semilogx(su2["yp"], nu_sgs["33"], ":", label="SU2_33")
+axes[0].set_ylabel("$\\nu_{SGS}$")
+axes[2].semilogx(cdp["yp"], cdp["TDR"], "--", label="SU2")
+axes[2].semilogx(su2["yp"], su2["Dissipation"], ":", label="SU2")
+axes[2].set_ylabel("$\\varepsilon$")
 axes[-1].set_xlabel("$y^+$")
 axes[0].legend(loc="best")
+axes[1].legend(loc="best")
+axes[2].legend(loc="best")
 plt.show()
+
+# num_plots = len(cdp_keys)
+# fig, axes = plt.subplots(num_plots, 1, sharex=True)
+# for axis, variable, label in zip(axes, cdp_keys, labels):
+#     axis.semilogx(cdp["yp"], cdp[variable], "--", label="CDP")
+#     axis.semilogx(su2["yp"], su2[variable], ":", label="SU2")
+#     axis.set_ylabel(label)
+# axes[-1].set_xlabel("$y^+$")
+# axes[0].legend(loc="best")
+# plt.show()

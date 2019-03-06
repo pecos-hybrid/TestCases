@@ -69,7 +69,7 @@ def ConvertCDPToSU2(CDP_data, SU2_dtype):
     # The second string is the SU2 name
     conversions = {'X': 'x', 'Y': 'y', 'Z': 'z',
                    'TDR': 'Dissipation', 'V2F_V2': 'v2', 'V2F_F22': 'f',
-                   'K_RESOLVED': 'ksubressub'}
+                   'K_RESOLVED': 'ksubressub', 'FD_AVE': 'avgrsubMsub'}
     for key, value in conversions.items():
         SU2_data[value] = CDP_data[key]
     # Derive all the other quantities for compressible flow
@@ -174,6 +174,6 @@ tecplot_data = ReadTecData(args.input, verbose=True)
 SU2_data = ConvertCDPToSU2(tecplot_data, original.dtype)
 
 print("Remapping the Tecplot data to the SU2 coordinates...")
-SU2_new = Remap(original, SU2_data, "nearest-neighbor")
+SU2_new = Remap(original, SU2_data, "linear")
 
 WriteToSU2(args.restart, args.output, SU2_new, num_lines_in_footer)

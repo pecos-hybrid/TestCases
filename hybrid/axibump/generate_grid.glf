@@ -11,6 +11,16 @@
 # Authors: T. Oliver, C. Pederson
 # Compatible with: Pointwise V18.3
 # ---------------------------------------------------------------------
+#
+# ---------------------------------------------------------------------
+# FIXME:
+# ---------------------------------------------------------------------
+# Nr and Nx are set using the "optimal grid distribution"
+# Unfortunately, this leaves some later numbers hardcoded to match.
+# If you change the spacing constraints on any of the connectors,
+# you will need to update the hardcoded constants.
+# See the FIXME tags later in this document
+# ---------------------------------------------------------------------
 
 package require PWI_Glyph 2.18.2
 
@@ -24,28 +34,41 @@ pw::Application clearModified
 # Script variables
 # ---------------------------------------------------------------------
 
-# Number of grid points in each direction
-set Nx 382
-set Nr 256
-set Ntheta 24
+# All dimensions are normalized by c, the bump length
+set Ntheta 72
 # Azimuthal extent of the domain, in degrees
 set azimuthal_angle 15
+# Spacing at the inlet
+set inlet_delta_x 0.15
+# Spacing at the outlet
+set outlet_delta_x 0.10
+# Spacing near x/c = -1
+set approach_delta_x 0.0014
 # Spacing near x/c = 0.5
-set crest_delta_x 0.004
+set crest_delta_x 0.0014
 # Spacing near separation
-set separation_delta_x 0.002
+set separation_delta_x 0.001
 # Spacing at x/c = 1
-set bump_end_delta_x 0.004
+set bump_end_delta_x 0.001
+# Wall-normal spacing, at y+ \approx 100, x/c = -1
+set approach_delta_r 1.5E-4
 # Wall-normal spacing, at the wall, at inlet
 set inlet_delta_r 5.0e-06
 # Wall-normal spacing, at the wall, at the outlet
 set outlet_delta_r 5.0e-06
+
+set delta_r_y100 1.5E-4
+set delta_r_BL_edge 1.6E-3
+
+# Wall-normal spacing, at the top
+set top_delta_r 0.10
 # Input basic grid
-set p2d_file {/workspace/code/SU2-test/axibump/grids/bump_newaxi_721.p2dfmt}
+set p2d_file {/home/clark/Downloads/axibump/grids/bump_newaxi_721.p2dfmt}
 # Output Pointwise project file
-set pw_file {./axibump_382x256x24.pw}
+set pw_file {./axibump_1731x251x72.pw}
 # Output su2 file
-set su2_file /workspace/code/SU2-test/axibump/grids/axibump_382x256x24.su2
+set su2_file /home/clark/Downloads/axibump/grids/axibump_1731x251x72.su2
+set cgns_file /home/clark/Downloads/axibump/grids/axibump_axibump_1731x251x72.cgns
 
 # ---------------------------------------------------------------------
 # Script variables
@@ -58,26 +81,6 @@ set _TMP(mode_1) [pw::Application begin GridImport]
 $_TMP(mode_1) end
 unset _TMP(mode_1)
 pw::Application markUndoLevel {Import Grid}
-
-set con1 [pw::GridEntity getByName con-1]
-set con3 [pw::GridEntity getByName con-3]
-set _TMP(PW_1) [pw::Collection create]
-$_TMP(PW_1) set [list $con1 $con3]
-$_TMP(PW_1) do setDimension $Nx
-$_TMP(PW_1) delete
-unset _TMP(PW_1)
-pw::CutPlane refresh
-pw::Application markUndoLevel {Dimension}
-
-set con2 [pw::GridEntity getByName con-2]
-set con4 [pw::GridEntity getByName con-4]
-set _TMP(PW_1) [pw::Collection create]
-$_TMP(PW_1) set [list $con2 $con4]
-$_TMP(PW_1) do setDimension $Nr
-$_TMP(PW_1) delete
-unset _TMP(PW_1)
-pw::CutPlane refresh
-pw::Application markUndoLevel {Dimension}
 
 set _DM(1) [pw::GridEntity getByName dom-1]
 set _TMP(exam_1) [pw::Examine create "DomainLengthI"]
@@ -108,46 +111,52 @@ unset _TMP(PW_1)
 pw::CutPlane applyMetric ""
 pw::Application markUndoLevel {Update Examine Filters}
 
+set con1 [pw::GridEntity getByName con-1]
+set con2 [pw::GridEntity getByName con-2]
+set con3 [pw::GridEntity getByName con-3]
+set con4 [pw::GridEntity getByName con-4]
+
 set _TMP(mode_1) [pw::Application begin Modify [list $con1 $con3]]
   $con1 addBreakPoint -arc 0.484506213477
   $con1 addBreakPoint -X 0.69899664
   $con1 addBreakPoint -X 1.0023381
+  [[$con1 getDistribution 1] getBeginSpacing] setValue $inlet_delta_x
   [[$con1 getDistribution 1] getEndSpacing] setValue $crest_delta_x
   [[$con1 getDistribution 2] getBeginSpacing] setValue $crest_delta_x
   [[$con1 getDistribution 2] getEndSpacing] setValue $separation_delta_x
   [[$con1 getDistribution 3] getBeginSpacing] setValue $separation_delta_x
   [[$con1 getDistribution 3] getEndSpacing] setValue $bump_end_delta_x
   [[$con1 getDistribution 4] getBeginSpacing] setValue $bump_end_delta_x
-$_TMP(mode_1) end
-unset _TMP(mode_1)
-pw::Application markUndoLevel {Distribute}
-
-set _TMP(mode_1) [pw::Application begin Modify [list $con1]]
-$_TMP(mode_1) end
-unset _TMP(mode_1)
-pw::Application markUndoLevel {Distribute}
-
-set _TMP(mode_1) [pw::Application begin Modify [list $con1]]
-$_TMP(mode_1) end
-unset _TMP(mode_1)
-pw::Application markUndoLevel {Distribute}
-
-set _TMP(mode_1) [pw::Application begin Modify [list $con1]]
-$_TMP(mode_1) end
-unset _TMP(mode_1)
-pw::Application markUndoLevel {Distribute}
-
-set _TMP(mode_1) [pw::Application begin Modify [list $con1]]
-  $con1 setSubConnectorDimension [list 100 64 96 125]
+  [[$con1 getDistribution 4] getEndSpacing] setValue $outlet_delta_x
 $_TMP(mode_1) end
 unset _TMP(mode_1)
 pw::Application markUndoLevel {Distribute}
 
 # ---------------------------------------------------------------------
-# Change the top distribution to match the bottom
+# Add in spacing constraints for x/c = -1
 # ---------------------------------------------------------------------
+
+set _TMP(mode_1) [pw::Application begin Modify [list $con1]]
+  $con1 addBreakPoint -X -1
+  [[$con1 getDistribution 2] getBeginSpacing] setValue $approach_delta_x
+  [[$con1 getDistribution 1] getEndSpacing] setValue $approach_delta_x
+  $con1 setSubConnectorDimensionFromDistribution 2
+  $con1 setSubConnectorDimensionFromDistribution 5
+  $con1 setSubConnectorDimensionFromDistribution 4
+  $con1 setSubConnectorDimensionFromDistribution 3
+  $con1 setSubConnectorDimensionFromDistribution 1
+$_TMP(mode_1) end
+unset _TMP(mode_1)
+pw::Application markUndoLevel {Distribute}
+
+# FIXME: This number is hardcoded...
+$con3 setDimension 1732
+pw::CutPlane refresh
+pw::Application markUndoLevel {Dimension}
+
 set _TMP(mode_1) [pw::Application begin Modify [list $con3]]
-  set _TMP(dist_1) [pw::DistributionGeneral create [list [list $con1 4] [list $con1 3] [list $con1 2] [list $con1 1]]]
+  set _CN(2) [pw::GridEntity getByName con-1]
+  set _TMP(dist_1) [pw::DistributionGeneral create [list [list $_CN(2) 5] [list $_CN(2) 4] [list $_CN(2) 3] [list $_CN(2) 2] [list $_CN(2) 1]]]
   # Clear spacings so the distribution will scale properly
   $_TMP(dist_1) setBeginSpacing 0
   $_TMP(dist_1) setEndSpacing 0
@@ -156,176 +165,59 @@ set _TMP(mode_1) [pw::Application begin Modify [list $con3]]
   unset _TMP(dist_1)
 $_TMP(mode_1) end
 unset _TMP(mode_1)
-pw::Application markUndoLevel Distribute
+pw::Application markUndoLevel {Distribute}
 
 # ---------------------------------------------------------------------
-# Set the wall-normal distribution
+# Setup the inlet spacing
 # ---------------------------------------------------------------------
-set _TMP(mode_1) [pw::Application begin Modify [list $con2 $con4]]
-  $con2 replaceDistribution 1 [pw::DistributionTanh create]
-  $con4 replaceDistribution 1 [pw::DistributionTanh create]
-$_TMP(mode_1) end
-unset _TMP(mode_1)
-pw::Application markUndoLevel Distribute
 
 set _TMP(mode_1) [pw::Application begin Modify [list $con4]]
-  set _TMP(PW_1) [$con4 getDistribution 1]
-  $_TMP(PW_1) setEndSpacing $inlet_delta_r
-  unset _TMP(PW_1)
+  $con4 addBreakPoint -Y 0.376
+  [[$con4 getDistribution 1] getBeginSpacing] setValue $top_delta_r
+  [[$con4 getDistribution 2] getEndSpacing] setValue $inlet_delta_r
+  [[$con4 getDistribution 2] getBeginSpacing] setValue $delta_r_y100
+  [[$con4 getDistribution 1] getEndSpacing] setValue $delta_r_y100
+  $con4 setSubConnectorDimensionFromDistribution 1
+  $con4 setSubConnectorDimensionFromDistribution 2
+  $con4 addBreakPoint -Y 0.425
+  [[$con4 getDistribution 2] getBeginSpacing] setValue $delta_r_BL_edge
+  [[$con4 getDistribution 1] getEndSpacing] setValue $delta_r_BL_edge
+  $con4 setSubConnectorDimensionFromDistribution 1
+  $con4 setSubConnectorDimensionFromDistribution 2
+  $con4 setSubConnectorDimensionFromDistribution 3
 $_TMP(mode_1) end
 unset _TMP(mode_1)
-pw::Application markUndoLevel {Change Spacing}
+pw::Application markUndoLevel {Distribute}
+
+# FIXME: This is hardcoded
+
+$con2 setDimension 251
+pw::CutPlane refresh
+pw::Application markUndoLevel {Dimension}
+
+# ---------------------------------------------------------------------
+# Outlet wall-normal spacing
+# ---------------------------------------------------------------------
 
 set _TMP(mode_1) [pw::Application begin Modify [list $con2]]
-  set _TMP(PW_1) [$con2 getDistribution 1]
-  $_TMP(PW_1) setBeginSpacing $outlet_delta_r
-  unset _TMP(PW_1)
+  [[$con2 getDistribution 1] getBeginSpacing] setValue $outlet_delta_r
+  [[$con2 getDistribution 1] getEndSpacing] setValue $top_delta_r
+  $con2 replaceDistribution 1 [pw::DistributionTanh create]
 $_TMP(mode_1) end
 unset _TMP(mode_1)
-pw::Application markUndoLevel {Change Spacing}
+pw::Application markUndoLevel {Distribute}
 
+set _DM(1) [pw::GridEntity getByName dom-1]
 set _TMP(mode_1) [pw::Application begin EllipticSolver [list $_DM(1)]]
-  set _TMP(exam_1) [pw::Examine create "DomainLengthRatioJ"]
-  $_TMP(exam_1) addEntity [list $_DM(1)]
-  $_TMP(exam_1) examine
-  pw::CutPlane applyMetric {}
-  set _TMP(exam_2) [pw::Examine create "DomainLengthJ"]
-  $_TMP(exam_2) addEntity [list $_DM(1)]
-  $_TMP(exam_2) examine
-  $_TMP(exam_2) delete
-  unset _TMP(exam_2)
-  $_TMP(exam_1) delete
-  unset _TMP(exam_1)
-  set _TMP(exam_1) [pw::Examine create "DomainLengthRatioI"]
-  $_TMP(exam_1) addEntity [list $_DM(1)]
-  $_TMP(exam_1) examine
-  pw::CutPlane applyMetric {}
-  set _TMP(exam_2) [pw::Examine create "DomainLengthJ"]
-  $_TMP(exam_2) addEntity [list $_DM(1)]
-  $_TMP(exam_2) examine
-  $_TMP(exam_2) delete
-  unset _TMP(exam_2)
-  $_TMP(exam_1) delete
-  unset _TMP(exam_1)
-  set _TMP(exam_1) [pw::Examine create "DomainSkewEquiangle"]
-  $_TMP(exam_1) addEntity [list $_DM(1)]
-  $_TMP(exam_1) examine
-  pw::CutPlane applyMetric {}
-  set _TMP(exam_2) [pw::Examine create "DomainLengthJ"]
-  $_TMP(exam_2) addEntity [list $_DM(1)]
-  $_TMP(exam_2) examine
-  $_TMP(exam_2) delete
-  unset _TMP(exam_2)
-  $_TMP(exam_1) delete
-  unset _TMP(exam_1)
-  set _TMP(exam_1) [pw::Examine create "DomainMinimumAngle"]
-  $_TMP(exam_1) addEntity [list $_DM(1)]
-  $_TMP(exam_1) examine
-  pw::CutPlane applyMetric {}
-  set _TMP(exam_2) [pw::Examine create "DomainLengthJ"]
-  $_TMP(exam_2) addEntity [list $_DM(1)]
-  $_TMP(exam_2) examine
-  $_TMP(exam_2) delete
-  unset _TMP(exam_2)
-  $_TMP(exam_1) delete
-  unset _TMP(exam_1)
-  pw::CutPlane applyMetric ""
-  $_TMP(mode_1) setActiveSubGrids $_DM(1) [list]
-  $_TMP(mode_1) run 10
-  $_TMP(mode_1) setActiveSubGrids $_DM(1) [list]
-  $_TMP(mode_1) run 10
-  $_TMP(mode_1) setActiveSubGrids $_DM(1) [list]
-  $_TMP(mode_1) run 10
-  $_TMP(mode_1) setActiveSubGrids $_DM(1) [list]
-  $_TMP(mode_1) run 100
-  set _TMP(exam_1) [pw::Examine create "DomainLengthRatioJ"]
-  $_TMP(exam_1) addEntity [list $_DM(1)]
-  $_TMP(exam_1) examine
-  pw::CutPlane applyMetric {}
-  set _TMP(exam_2) [pw::Examine create "DomainLengthJ"]
-  $_TMP(exam_2) addEntity [list $_DM(1)]
-  $_TMP(exam_2) examine
-  $_TMP(exam_2) delete
-  unset _TMP(exam_2)
-  $_TMP(exam_1) delete
-  unset _TMP(exam_1)
-  set _TMP(exam_1) [pw::Examine create "DomainSmoothnessI"]
-  $_TMP(exam_1) addEntity [list $_DM(1)]
-  $_TMP(exam_1) examine
-  pw::CutPlane applyMetric {}
-  $_TMP(exam_1) delete
-  unset _TMP(exam_1)
-  set _TMP(exam_1) [pw::Examine create "DomainSmoothnessJ"]
-  $_TMP(exam_1) addEntity [list $_DM(1)]
-  $_TMP(exam_1) examine
-  pw::CutPlane applyMetric {}
-  $_TMP(exam_1) delete
-  unset _TMP(exam_1)
-  set _TMP(exam_1) [pw::Examine create "DomainSkewEquiangle"]
-  $_TMP(exam_1) addEntity [list $_DM(1)]
-  $_TMP(exam_1) examine
-  pw::CutPlane applyMetric {}
-  $_TMP(exam_1) delete
-  unset _TMP(exam_1)
-  set _TMP(exam_1) [pw::Examine create "DomainMinimumAngle"]
-  $_TMP(exam_1) addEntity [list $_DM(1)]
-  $_TMP(exam_1) examine
-  pw::CutPlane applyMetric {}
-  $_TMP(exam_1) delete
-  unset _TMP(exam_1)
-  set _TMP(exam_1) [pw::Examine create "DomainMaximumAngle"]
-  $_TMP(exam_1) addEntity [list $_DM(1)]
-  $_TMP(exam_1) examine
-  pw::CutPlane applyMetric {}
-  $_TMP(exam_1) delete
-  unset _TMP(exam_1)
-  pw::CutPlane applyMetric ""
-  $_TMP(mode_1) setActiveSubGrids $_DM(1) [list]
-  $_TMP(mode_1) run 100
-  set _TMP(ENTS) [pw::Collection create]
-$_TMP(ENTS) set [list $_DM(1)]
-  $_DM(1) setEllipticSolverAttribute InteriorControl ThomasMiddlecoff
-  $_TMP(ENTS) do setInitializeMethod Standard
-  $_TMP(ENTS) delete
-  unset _TMP(ENTS)
-  set _TMP(exam_1) [pw::Examine create "DomainLengthRatioJ"]
-  $_TMP(exam_1) addEntity [list $_DM(1)]
-  $_TMP(exam_1) examine
-  pw::CutPlane applyMetric {}
-  $_TMP(exam_1) delete
-  unset _TMP(exam_1)
-  set _TMP(exam_1) [pw::Examine create "DomainLengthJ"]
-  $_TMP(exam_1) addEntity [list $_DM(1)]
-  $_TMP(exam_1) examine
-  pw::CutPlane applyMetric {}
-  $_TMP(exam_1) delete
-  unset _TMP(exam_1)
-  pw::CutPlane applyMetric ""
-  $_TMP(mode_1) setActiveSubGrids $_DM(1) [list]
-  $_TMP(mode_1) run 100
+  $_TMP(mode_1) run 55
 $_TMP(mode_1) end
 unset _TMP(mode_1)
 pw::Application markUndoLevel {Solve}
 
-set _TMP(exam_1) [pw::Examine create "DomainLengthI"]
-$_TMP(exam_1) addEntity [list $_DM(1)]
-$_TMP(exam_1) examine
-pw::CutPlane applyMetric {}
-set _TMP(exam_2) [pw::Examine create "DomainLengthJ"]
-$_TMP(exam_2) addEntity [list $_DM(1)]
-$_TMP(exam_2) examine
-$_TMP(exam_1) delete
-unset _TMP(exam_1)
-$_TMP(exam_2) delete
-unset _TMP(exam_2)
-set _TMP(exam_1) [pw::Examine create "DomainLengthJ"]
-$_TMP(exam_1) addEntity [list $_DM(1)]
-$_TMP(exam_1) examine
-pw::CutPlane applyMetric {}
-$_TMP(exam_1) delete
-unset _TMP(exam_1)
-pw::CutPlane applyMetric ""
-pw::Display resetView -Z
+# ---------------------------------------------------------------------
+# Extrude in azimuthal direction
+# ---------------------------------------------------------------------
+
 set _TMP(mode_1) [pw::Application begin Create]
   set _TMP(PW_1) [pw::FaceStructured createFromDomains [list $_DM(1)]]
   set _TMP(face_1) [lindex $_TMP(PW_1) 0]
@@ -345,6 +237,10 @@ $_TMP(mode_1) end
 unset _TMP(mode_1)
 unset _TMP(face_1)
 pw::Application markUndoLevel {Extrude, Rotate}
+
+# ---------------------------------------------------------------------
+# BCs
+# ---------------------------------------------------------------------
 
 pw::Application setCAESolver {SU2} 3
 pw::Application markUndoLevel {Select Solver}
@@ -439,12 +335,38 @@ unset _TMP(PW_4)
 unset _TMP(PW_5)
 unset _TMP(PW_7)
 unset _TMP(PW_9)
+
+# ---------------------------------------------------------------------
+# Save pointwise
+# ---------------------------------------------------------------------
+#
 pw::Application save $pw_file
+
+# ---------------------------------------------------------------------
+# Export su2 file
+# ---------------------------------------------------------------------
 
 set _TMP(mode_1) [pw::Application begin CaeExport]
   $_TMP(mode_1) addAllEntities
   $_TMP(mode_1) initialize -strict -type CAE $su2_file
   $_TMP(mode_1) setAttribute FilePrecision Double
+  $_TMP(mode_1) verify
+  $_TMP(mode_1) write
+$_TMP(mode_1) end
+unset _TMP(mode_1)
+
+# ---------------------------------------------------------------------
+# Also save to CGNS to preserve structured data
+# ---------------------------------------------------------------------
+
+pw::Application setCAESolver {CGNS} 3
+pw::Application markUndoLevel {Select Solver}
+
+set _TMP(mode_1) [pw::Application begin CaeExport]
+  $_TMP(mode_1) addAllEntities
+  $_TMP(mode_1) initialize -strict -type CAE $cgns_file
+  $_TMP(mode_1) setAttribute FilePrecision Double
+  $_TMP(mode_1) setAttribute ExportDonorInformation false
   $_TMP(mode_1) verify
   $_TMP(mode_1) write
 $_TMP(mode_1) end

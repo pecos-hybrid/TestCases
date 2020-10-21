@@ -11,16 +11,6 @@
 # Authors: T. Oliver, C. Pederson
 # Compatible with: Pointwise V18.3
 # ---------------------------------------------------------------------
-#
-# ---------------------------------------------------------------------
-# FIXME:
-# ---------------------------------------------------------------------
-# Nr and Nx are set using the "optimal grid distribution"
-# Unfortunately, this leaves some later numbers hardcoded to match.
-# If you change the spacing constraints on any of the connectors,
-# you will need to update the hardcoded constants.
-# See the FIXME tags later in this document
-# ---------------------------------------------------------------------
 
 package require PWI_Glyph 2.18.2
 
@@ -35,40 +25,54 @@ pw::Application clearModified
 # ---------------------------------------------------------------------
 
 # All dimensions are normalized by c, the bump length
-set Ntheta 72
+
+# ---------------------------------------------------------------------
+# Azimuthal spacing
+# ---------------------------------------------------------------------
+# Number of grid points in each direction
+set Ntheta 3
 # Azimuthal extent of the domain, in degrees
-set azimuthal_angle 15
+set azimuthal_angle 1
+
+# ---------------------------------------------------------------------
+# Streamwise spacing
+# ---------------------------------------------------------------------
 # Spacing at the inlet
-set inlet_delta_x 0.15
+set inlet_delta_x 0.05
 # Spacing at the outlet
 set outlet_delta_x 0.10
 # Spacing near x/c = -1
-set approach_delta_x 0.0014
+set approach_delta_x 0.009
 # Spacing near x/c = 0.5
-set crest_delta_x 0.0014
+set crest_delta_x 0.002
 # Spacing near separation
-set separation_delta_x 0.001
+set separation_delta_x 0.002
 # Spacing at x/c = 1
-set bump_end_delta_x 0.001
+set bump_end_delta_x 0.002
+
+# ---------------------------------------------------------------------
+# Wall-normal spacing
+# ---------------------------------------------------------------------
 # Wall-normal spacing, at y+ \approx 100, x/c = -1
-set approach_delta_r 1.5E-4
+set approach_delta_r 1.6E-4
 # Wall-normal spacing, at the wall, at inlet
 set inlet_delta_r 5.0e-06
 # Wall-normal spacing, at the wall, at the outlet
 set outlet_delta_r 5.0e-06
-
-set delta_r_y100 1.5E-4
-set delta_r_BL_edge 1.6E-3
-
+# Wall-normal spacing, at the edge of the boundary layer
+# Boundary layer thickness is about 0.032 c at x/c = -1
+set delta_r_BL_edge 1.6e-3
 # Wall-normal spacing, at the top
 set top_delta_r 0.10
+
 # Input basic grid
 set p2d_file {/home/clark/Downloads/axibump/grids/bump_newaxi_721.p2dfmt}
 # Output Pointwise project file
-set pw_file {./axibump_1731x251x72.pw}
+set pw_file {/home/clark/Downloads/axibump/grids/axibump_very_coarse_narrow.pw}
 # Output su2 file
-set su2_file /home/clark/Downloads/axibump/grids/axibump_1731x251x72.su2
-set cgns_file /home/clark/Downloads/axibump/grids/axibump_axibump_1731x251x72.cgns
+set su2_file /home/clark/Downloads/axibump/grids/axibump_very_coarse_narrow.su2
+# Output cgns file
+set cgns_file /home/clark/Downloads/axibump/grids/axibump_very_coarse_narrow.cgns
 
 # ---------------------------------------------------------------------
 # Script variables
@@ -149,8 +153,9 @@ $_TMP(mode_1) end
 unset _TMP(mode_1)
 pw::Application markUndoLevel {Distribute}
 
-# FIXME: This number is hardcoded...
-$con3 setDimension 1732
+# Fixed???
+set Nx [$con1 getDimension]
+$con3 setDimension $Nx
 pw::CutPlane refresh
 pw::Application markUndoLevel {Dimension}
 
@@ -175,8 +180,8 @@ set _TMP(mode_1) [pw::Application begin Modify [list $con4]]
   $con4 addBreakPoint -Y 0.376
   [[$con4 getDistribution 1] getBeginSpacing] setValue $top_delta_r
   [[$con4 getDistribution 2] getEndSpacing] setValue $inlet_delta_r
-  [[$con4 getDistribution 2] getBeginSpacing] setValue $delta_r_y100
-  [[$con4 getDistribution 1] getEndSpacing] setValue $delta_r_y100
+  [[$con4 getDistribution 2] getBeginSpacing] setValue $approach_delta_r
+  [[$con4 getDistribution 1] getEndSpacing] setValue $approach_delta_r
   $con4 setSubConnectorDimensionFromDistribution 1
   $con4 setSubConnectorDimensionFromDistribution 2
   $con4 addBreakPoint -Y 0.425
@@ -189,9 +194,9 @@ $_TMP(mode_1) end
 unset _TMP(mode_1)
 pw::Application markUndoLevel {Distribute}
 
-# FIXME: This is hardcoded
-
-$con2 setDimension 251
+# Fixed???
+set Nr [$con4 getDimension]
+$con2 setDimension $Nr
 pw::CutPlane refresh
 pw::Application markUndoLevel {Dimension}
 
